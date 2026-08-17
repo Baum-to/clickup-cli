@@ -2,12 +2,44 @@ package apiv2
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"net/url"
 
 	"github.com/triptechtravel/clickup-cli/internal/api"
 	"github.com/triptechtravel/clickup-cli/internal/clickup"
 )
+
+// TaskTemplate is the stable subset of ClickUp's task-template response used
+// by the CLI. ClickUp historically returned template IDs as strings but now
+// returns objects containing id and name, so the decoder accepts both shapes.
+type TaskTemplate struct {
+	ID   string `json:"id"`
+	Name string `json:"name"`
+}
+
+func (t *TaskTemplate) UnmarshalJSON(data []byte) error {
+	var legacy string
+	if err := json.Unmarshal(data, &legacy); err == nil {
+		t.ID = legacy
+		t.Name = legacy
+		return nil
+	}
+
+	type taskTemplateAlias TaskTemplate
+	var current taskTemplateAlias
+	if err := json.Unmarshal(data, &current); err != nil {
+		return fmt.Errorf("decode task template: %w", err)
+	}
+	if current.ID == "" {
+		current.ID = current.Name
+	}
+	if current.Name == "" {
+		current.Name = current.ID
+	}
+	*t = TaskTemplate(current)
+	return nil
+}
 
 // --- Query helpers ---
 
@@ -88,6 +120,19 @@ func GetTasksLocal(ctx context.Context, client *api.Client, listID, qs string) (
 		return nil, err
 	}
 	return resp.Tasks, nil
+}
+
+// GetTaskTemplatesLocal fetches task templates using the flexible response
+// decoder above instead of the generated []string schema.
+func GetTaskTemplatesLocal(ctx context.Context, client *api.Client, teamID string) ([]TaskTemplate, error) {
+	var resp struct {
+		Templates []TaskTemplate `json:"templates"`
+	}
+	path := fmt.Sprintf("team/%s/taskTemplate", teamID)
+	if err := do(ctx, client, "GET", path, nil, &resp); err != nil {
+		return nil, err
+	}
+	return resp.Templates, nil
 }
 
 // CreateTaskLocal creates a task in a list.
@@ -356,4 +401,3 @@ func GetUserLocal(ctx context.Context, client *api.Client) (*UserInfo, error) {
 func Do(ctx context.Context, client *api.Client, method, path string, body any, result any) error {
 	return do(ctx, client, method, path, body, result)
 }
-

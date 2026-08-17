@@ -12,7 +12,10 @@ import (
 )
 
 var sampleTaskTemplatesJSON = `{
-	"templates": ["template-1", "template-2"]
+	"templates": [
+		{"id": "template-1", "name": "Feature delivery"},
+		{"id": "template-2", "name": "Bug remediation"}
+	]
 }`
 
 var sampleFolderTemplatesJSON = `{
@@ -47,7 +50,19 @@ func TestTemplateList_Task(t *testing.T) {
 
 	out := tf.OutBuf.String()
 	assert.Contains(t, out, "template-1")
-	assert.Contains(t, out, "template-2")
+	assert.Contains(t, out, "Feature delivery")
+}
+
+func TestTemplateList_TaskLegacyStringResponse(t *testing.T) {
+	tf := testutil.NewTestFactory(t)
+	tf.HandleFunc("team/12345/taskTemplate", templatesHandler(`{"templates": ["template-1"]}`))
+
+	cmd := NewCmdTemplateList(tf.Factory)
+	err := testutil.RunCommand(t, cmd)
+	require.NoError(t, err)
+
+	out := tf.OutBuf.String()
+	assert.Contains(t, out, "template-1")
 }
 
 func TestTemplateList_Folder(t *testing.T) {

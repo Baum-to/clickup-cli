@@ -101,16 +101,15 @@ Use --type to filter by template type: task (default), folder, or list.`,
 					items = append(items, templateItem{Name: name, ID: id, Kind: "list"})
 				}
 			default:
-				// Task templates — note: Templates is []string.
-				resp, err := apiv2.GetTaskTemplates(ctx, client, teamID)
+				templates, err := apiv2.GetTaskTemplatesLocal(ctx, client, teamID)
 				if err != nil {
 					return fmt.Errorf("failed to fetch task templates: %w", err)
 				}
 				if jsonFlags.WantsJSON() {
-					return jsonFlags.OutputJSON(f.IOStreams.Out, resp.Templates)
+					return jsonFlags.OutputJSON(f.IOStreams.Out, templates)
 				}
-				for _, t := range resp.Templates {
-					items = append(items, templateItem{Name: t, ID: t, Kind: "task"})
+				for _, t := range templates {
+					items = append(items, templateItem{Name: t.Name, ID: t.ID, Kind: "task"})
 				}
 			}
 

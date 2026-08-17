@@ -6,7 +6,6 @@ import (
 	"strings"
 
 	"github.com/spf13/cobra"
-	clickupv2 "github.com/triptechtravel/clickup-cli/api/clickupv2"
 	"github.com/triptechtravel/clickup-cli/internal/apiv2"
 	"github.com/triptechtravel/clickup-cli/internal/git"
 	"github.com/triptechtravel/clickup-cli/pkg/cmdutil"
@@ -41,8 +40,8 @@ If TASK is not provided, the task ID is auto-detected from the current git branc
 
   # Fuzzy matching works too
   clickup status set "prog" CU-abc123`,
-		Args:               cobra.RangeArgs(1, 2),
-		PersistentPreRunE:  cmdutil.NeedsAuth(f),
+		Args:              cobra.RangeArgs(1, 2),
+		PersistentPreRunE: cmdutil.NeedsAuth(f),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			opts.targetStatus = args[0]
 			if len(args) > 1 {
@@ -107,7 +106,7 @@ func setRun(opts *setOptions) error {
 	}
 
 	// Update the task status.
-	if _, err := apiv2.UpdateTask(ctx, client, task.ID, &clickupv2.UpdateTaskJSONRequest{Status: &matched}); err != nil {
+	if _, err := apiv2.UpdateTaskLocal(ctx, client, task.ID, map[string]string{"status": matched}, ""); err != nil {
 		return fmt.Errorf("failed to update task status: %w", err)
 	}
 
@@ -130,4 +129,3 @@ func setRun(opts *setOptions) error {
 
 	return nil
 }
-

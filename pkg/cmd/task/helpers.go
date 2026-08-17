@@ -6,7 +6,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/triptechtravel/clickup-cli/api/clickupv2"
 	"github.com/triptechtravel/clickup-cli/internal/api"
 	"github.com/triptechtravel/clickup-cli/internal/apiv2"
 	"github.com/triptechtravel/clickup-cli/internal/clickup"
@@ -32,13 +31,15 @@ func parseDuration(s string) (int, error) {
 	return int(d.Milliseconds()), nil
 }
 
-// setTaskPoints sets sprint/story points on a task using the auto-generated
-// UpdateTask wrapper (go-clickup's TaskUpdateRequest doesn't support points).
+// setTaskPoints sets sprint/story points using the flexible local task decoder.
 func setTaskPoints(client *api.Client, taskID string, points float64) error {
-	p := float32(points)
-	_, err := apiv2.UpdateTask(context.Background(), client, taskID, &clickupv2.UpdateTaskJSONRequest{
-		Points: &p,
-	})
+	_, err := apiv2.UpdateTaskLocal(
+		context.Background(),
+		client,
+		taskID,
+		map[string]float64{"points": points},
+		"",
+	)
 	return err
 }
 
@@ -119,12 +120,16 @@ func removeTaskFromList(client *api.Client, listID, taskID string) error {
 	return err
 }
 
-// setMarkdownDescription sets the markdown description on a task using the
-// auto-generated UpdateTask wrapper.
+// setMarkdownDescription uses the flexible local task decoder because ClickUp
+// returns watcher objects that do not match the generated response schema.
 func setMarkdownDescription(client *api.Client, taskID string, md string) error {
-	_, err := apiv2.UpdateTask(context.Background(), client, taskID, &clickupv2.UpdateTaskJSONRequest{
-		MarkdownContent: &md,
-	})
+	_, err := apiv2.UpdateTaskLocal(
+		context.Background(),
+		client,
+		taskID,
+		map[string]string{"markdown_content": md},
+		"",
+	)
 	return err
 }
 

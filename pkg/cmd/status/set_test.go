@@ -197,6 +197,30 @@ func TestStatusSet_FuzzyMatch(t *testing.T) {
 	assert.Contains(t, errOut, "matched to")
 }
 
+func TestStatusSet_AcceptsWatcherObjectsInUpdateResponse(t *testing.T) {
+	tf := testutil.NewTestFactory(t)
+
+	tf.HandleFunc("task/task1", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.Header().Set("X-RateLimit-Remaining", "99")
+		switch r.Method {
+		case http.MethodGet:
+			w.Write([]byte(taskJSON))
+		case http.MethodPut:
+			w.WriteHeader(http.StatusOK)
+			w.Write([]byte(`{"id":"task1","status":{"status":"done"},"watchers":[{"id":123,"username":"Kevin"}]}`))
+		default:
+			w.WriteHeader(http.StatusMethodNotAllowed)
+		}
+	})
+	registerListHandler(tf, listWithStatusesJSON)
+
+	cmd := NewCmdSet(tf.Factory)
+	err := testutil.RunCommand(t, cmd, "done", "task1")
+	require.NoError(t, err)
+	assert.Contains(t, tf.OutBuf.String(), "Status changed")
+}
+
 func TestStatusSet_NoMatch(t *testing.T) {
 	tf := testutil.NewTestFactory(t)
 
