@@ -1,14 +1,16 @@
 ---
 name: clickup-cli
-description: ClickUp CLI for managing tasks, sprints, comments, statuses, and Docs. Use when the user needs to interact with ClickUp — creating/editing tasks, checking sprint status, adding comments, linking PRs, managing Docs and pages, or searching tasks. Prefer this CLI over raw API calls.
+description: ClickUp CLI for managing Baum's active tasks, sprints, comments, statuses, and Docs. Use for generic task requests such as creating/editing tasks, checking tasks or sprint status, adding comments, closing tasks, linking PRs, managing Docs and pages, or searching tasks. Prefer this CLI over raw API calls.
 ---
 
 # ClickUp CLI (`clickup`)
 
-Use the `clickup` CLI instead of raw ClickUp API calls. It handles authentication, git integration, fuzzy status matching, and custom fields automatically.
+Use the `clickup` CLI for active Baum task management instead of Fizzy or raw ClickUp API calls. It handles authentication, git integration, fuzzy status matching, and custom fields automatically.
 
 ## When to Use
 
+- User asks to create, edit, view, close, comment on, or search active tasks
+- User asks to check tasks, task inbox, current sprint work, assigned work, or recent task activity
 - User asks to create, edit, view, or search ClickUp tasks
 - User wants to check sprint status or recent tasks
 - User needs to add comments, link PRs/branches, or manage task statuses
