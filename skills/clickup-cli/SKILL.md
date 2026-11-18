@@ -1,11 +1,13 @@
 ---
 name: clickup-cli
-description: ClickUp CLI for managing Baum's active tasks, sprints, comments, statuses, and Docs. Use for generic task requests such as creating/editing tasks, checking tasks or sprint status, adding comments, closing tasks, linking PRs, managing Docs and pages, or searching tasks. Prefer this CLI over raw API calls.
+description: ClickUp CLI for managing Baum's active tasks, sprints, comments, statuses, and Docs. Use for generic task requests such as creating/editing tasks, checking tasks or sprint status, adding comments, closing tasks, linking PRs, managing Docs and pages, or searching tasks. Prefer this CLI; call the ClickUp API for what it lacks (creating custom fields, list statuses, views, task links).
 ---
 
 # ClickUp CLI (`clickup`)
 
 Use the `clickup` CLI for active Baum task management instead of Fizzy or raw ClickUp API calls. It handles authentication, git integration, fuzzy status matching, and custom fields automatically.
+
+The CLI does not cover everything the ClickUp API can do. When it has no command for a job, use the API calls in [Beyond the CLI](#beyond-the-cli-the-clickup-api) before telling anyone it can't be done. The official ClickUp MCP server (`clickup`, https://mcp.clickup.com/mcp) is also configured on every machine once Kevin has signed in to it.
 
 ## When to Use
 
@@ -81,7 +83,7 @@ clickup task activity CU-abc123
 
 ### Task Naming Conventions
 
-**IMPORTANT: Always use descriptive, well-structured task names.** Task names should be scannable on a sprint board without needing to click into the task. Follow this convention:
+**Use descriptive, well-structured task names.** Names should be scannable on a sprint board without needing to click into the task. Follow this convention:
 
 **Format:** `[Work Type] Context — Action (Platform/Scope)`
 
@@ -105,7 +107,7 @@ clickup task activity CU-abc123
 
 ### Create & Edit
 
-**IMPORTANT: When creating a task, fill in ALL applicable fields.** Do not create bare tasks with just a name. Ask the user for any information you don't already have. Use the naming conventions above for the `--name` flag. A well-created task should include as many of these as possible:
+**Fill in the fields that apply when creating a task.** A task with only a name is hard to plan or pick up later. Ask the user for anything important you don't know. Use the naming conventions above for the `--name` flag. A well-created task should include as many of these as possible:
 
 - `--current` — **preferred**: auto-resolves the active sprint list (no need to know the list ID)
 - `--list-id` — explicit list ID (use when creating outside the current sprint)
@@ -125,7 +127,7 @@ clickup task activity CU-abc123
 - `--type` — 0=task, 1=milestone
 - `--field "Name=value"` — custom fields (repeatable)
 
-**IMPORTANT: Always use `--current` instead of hardcoding sprint list IDs.** Sprint list IDs change every sprint. Never cache or remember a specific list ID — always let the CLI resolve it dynamically.
+**Use `--current` rather than a sprint list ID.** Sprint list IDs change every sprint, so a remembered ID soon points at an old sprint. Let the CLI resolve it.
 
 After creating a task, consider adding checklists for acceptance criteria or subtasks:
 
@@ -550,6 +552,32 @@ clickup task checklist item add <checklist-id> "Assigned item" --assignee 123456
 clickup task checklist item edit <checklist-id> <item-id> --assignee 12345678
 clickup task checklist item edit <checklist-id> <item-id1> <item-id2> --assignee 12345678
 ```
+
+## Beyond the CLI: the ClickUp API
+
+These calls worked against the Baum workspace (36620028) on 29 Oct 2026. The CLI has no command for any of them.
+Pass the token only as a header, from Vaultwarden, and never print it:
+
+```bash
+cat > /tmp/cu.sh <<'SH'
+#!/bin/bash
+# $CU is the token; print status codes and names only
+curl -s -H "Authorization: $CU" "https://api.clickup.com/api/v2/list/<list-id>/field" | jq -r '.fields[].name'
+SH
+chmod +x /tmp/cu.sh
+~/Baum/tools/secret.sh with "ClickUp API Token (workspace 36620028)" CU -- /tmp/cu.sh
+```
+
+| Job | Call | Body |
+|-----|------|------|
+| Create a list custom field | `POST /api/v2/list/{list_id}/field` | `{"name":"Severity","type":"drop_down","type_config":{"sorting":"manual","options":[{"name":"P1","color":"#d33d44"}]}}`. Types that worked: `drop_down`, `number`, `date`, `short_text`, `url`, `tasks` (task relationship) |
+| Give a list its own statuses | `PUT /api/v2/list/{list_id}` | `{"name":"<list name>","override_statuses":true,"statuses":[{"status":"new","type":"open","color":"#87909e","orderindex":0},…,{"status":"resolved","type":"closed","color":"#008844","orderindex":5}]}`. Exactly one `closed` status; the others are `open`, `custom` or `done` |
+| Create a view | `POST /api/v2/list/{list_id}/view` | `{"name":"Needs action","type":"list","filters":{"op":"AND","fields":[{"field":"status","op":"EQ","values":["new"]}],"show_closed":false},"sorting":{"fields":[{"field":"cf_<field-id>","dir":1}]}}` |
+| Link two tasks | `POST /api/v2/task/{task_id}/link/{other_task_id}` | none |
+
+- Prefer list statuses over `clickup status add`: they change one list, not every list in the space.
+- A list's email-to-task address is longer than many senders accept (AWS SNS rejects it), so don't plan an integration around it without testing.
+- Not yet tested: editing a dropdown's options after the field exists, and deleting fields.
 
 ## Common Flags
 
