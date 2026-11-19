@@ -21,6 +21,7 @@ type listOptions struct {
 	sprint        string
 	page          int
 	includeClosed bool
+	subtasks      bool
 	jsonFlags     cmdutil.JSONFlags
 }
 
@@ -35,7 +36,10 @@ func NewCmdList(f *cmdutil.Factory) *cobra.Command {
 
 If --list-id is not provided, the configured default list is used
 (set via 'clickup list select'). Results can be filtered by assignee,
-status, and sprint.`,
+status, and sprint.
+
+ClickUp leaves subtasks out of list results by default. Use --subtasks
+to include them alongside top-level tasks.`,
 		Example: `  # List tasks using your configured default list
   clickup task list
 
@@ -46,7 +50,10 @@ status, and sprint.`,
   clickup task list --list-id 12345 --assignee me --status "in progress"
 
   # Include closed tasks
-  clickup task list --list-id 12345 --include-closed`,
+  clickup task list --list-id 12345 --include-closed
+
+  # Include subtasks as well as top-level tasks
+  clickup task list --list-id 12345 --subtasks`,
 		PersistentPreRunE: cmdutil.NeedsAuth(f),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if opts.listID == "" {
@@ -70,6 +77,7 @@ status, and sprint.`,
 	cmd.Flags().StringVar(&opts.sprint, "sprint", "", "Filter by sprint name")
 	cmd.Flags().IntVar(&opts.page, "page", 0, "Page number for pagination (starts at 0)")
 	cmd.Flags().BoolVarP(&opts.includeClosed, "include-closed", "c", false, "Include closed/completed tasks")
+	cmd.Flags().BoolVar(&opts.subtasks, "subtasks", false, "Include subtasks as well as top-level tasks")
 
 	cmdutil.AddJSONFlags(cmd, &opts.jsonFlags)
 
@@ -99,6 +107,9 @@ func runList(f *cmdutil.Factory, opts *listOptions) error {
 	}
 	if opts.includeClosed {
 		q.Set("include_closed", "true")
+	}
+	if opts.subtasks {
+		q.Set("subtasks", "true")
 	}
 
 	qs := ""
