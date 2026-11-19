@@ -13,6 +13,9 @@ If --list-id is not provided, the configured default list is used
 (set via 'clickup list select'). Results can be filtered by assignee,
 status, and sprint.
 
+ClickUp leaves subtasks out of list results by default. Use --subtasks
+to include them alongside top-level tasks.
+
 ```
 clickup task list [flags]
 ```
@@ -31,6 +34,9 @@ clickup task list [flags]
 
   # Include closed tasks
   clickup task list --list-id 12345 --include-closed
+
+  # Include subtasks as well as top-level tasks
+  clickup task list --list-id 12345 --subtasks
 ```
 
 ### Options
@@ -46,6 +52,7 @@ clickup task list [flags]
   -r, --raw                Output raw strings instead of JSON-encoded (use with --jq)
       --sprint string      Filter by sprint name
       --status strings     Filter by status(es)
+      --subtasks           Include subtasks as well as top-level tasks
       --template string    Format JSON output using a Go template
 ```
 
